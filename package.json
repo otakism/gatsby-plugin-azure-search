@@ -1,6 +1,6 @@
 {
   "name": "gatsby-plugin-azure-search",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Gatsby plugin to ingest data to Microsoft Azure search service.",
   "scripts": {
     "release": "standard-version"
