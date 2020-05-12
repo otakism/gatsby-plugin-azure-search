@@ -1,20 +1,42 @@
-# gatsby-plugin-azure-search
+# Gatsby Plugin Azure Search
 
-Gatsby plugin to ingest data into Microsoft Azure search.
+Gatsby plugin to ingest data into Microsoft Azure Cognitive Search.
 
-## Configuration
+## How to use
+
+Install the plugin.
+
+```bash
+npm install --save gatsby-plugin-azure-search dotenv
+```
+
+Add credentials to an .env file. Do not commit this file.
+
+It is recommended to use this approach to keep the admin key secret. If your Gatsby repository is always private, you may also (at your own risk) hard-code the credentials in gatsby-config.js.
+
+Note that we need the admin key instead of the query key.
+
+```
+// .env.development
+AZURE_SEARCH_SERVICE_NAME=X
+AZURE_SEARCH_ADMIN_KEY=X
+```
 
 Add configuration in gatsby-config.js like the following example:
 
-```ecmascript 6
+```javascript
+require('dotenv').config({
+  path: `.env.${process.env.NODE_ENV}`,
+});
+
 module.exports = {
   plugins: [
     {
       resolve: `gatsby-plugin-azure-search`,
       options: {
         verbose: false, // default: false
-        serviceName: ``, // required
-        apiKey: ``, // required. use the admin key, not query key
+        serviceName: process.env.AZURE_SEARCH_SERVICE_NAME, // required
+        apiKey: process.env.AZURE_SEARCH_ADMIN_KEY, // required
         indexConfig: { // required. refer to azure documentation
           name: ``, // required. the plugin upserts the index, no need to create it in advance
           fields: [], // required
@@ -40,15 +62,19 @@ module.exports = {
 
 For `indexConfig`, refer to the official Azure [documentation](https://docs.microsoft.com/en-us/azure/search/search-what-is-an-index#index-attributes).
 
-### Queries Configuration
+### Query Configuration
 
-Each query object must specify a graphql `query` and a `transformer`. 
+You can provide multiple graphql queries for ingestion, but for now all generated documents will be ingested into the same index.
 
-The output from the transformer function must match exactly as defined in the index's `fields` configuration. For example, including extra properties will result in bad request errors from Azure.
+Each query object specifies a required graphql `query` and an optional `transformer` function.
+
+The transformer function operates on the raw graphql query output as an array, and returns the transformed indexable documents as an array.
+
+The transformed document must match exactly as defined in the index's `fields` configuration. Including extra keys will result in bad request errors from Azure.
 
 Sample query:
 
-```ecmascript 6
+```javascript
 const sampleQuery = {
   query: `{
     allWordpressPost(

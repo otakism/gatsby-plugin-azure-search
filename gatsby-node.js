@@ -3,6 +3,11 @@ const reporter = require('gatsby-cli/lib/reporter');
 
 const API_VERSION = '2019-05-06';
 
+/**
+ * Get common header to call Azure search REST APIs.
+ * @param apiKey azure search admin key
+ * @returns {{'api-key': *, 'Content-Type': string}}
+ */
 const getHeaders = ({ apiKey }) => {
   return {
     'api-key': apiKey,
@@ -10,6 +15,14 @@ const getHeaders = ({ apiKey }) => {
   };
 };
 
+/**
+ * Create or update an search index.
+ * @param serviceName azure search service name
+ * @param apiKey azure search admin key
+ * @param indexConfig specified in gatsby-config.js
+ * @param verbose
+ * @returns {Promise<*>}
+ */
 const putIndex = async (
   {
     serviceName,
@@ -37,7 +50,16 @@ const putIndex = async (
   });
 };
 
-const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose, }) => {
+/**
+ * Index an array of documents to Azure.
+ * @param serviceName azure search service name
+ * @param apiKey azure search admin key
+ * @param indexName indexConfig.name
+ * @param docs documents to index
+ * @param verbose
+ * @returns {*}
+ */
+const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose }) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexName}/docs/index?api-version=${API_VERSION}`;
   const body = {
     value: docs,
@@ -46,6 +68,7 @@ const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose, }) => {
   if (verbose) {
     reporter.info(`Input to index document:`);
     reporter.log(url);
+    reporter.log(JSON.stringify(body));
     reporter.log(JSON.stringify(headers));
   }
   return fetch(url, {
@@ -54,26 +77,45 @@ const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose, }) => {
     body: JSON.stringify(body),
   }).then(res => res.json())
     .then(res => {
-      reporter.info(`Response: ${JSON.stringify(res)}`);
-      reporter.log(JSON.stringify(res));
+      if (verbose) {
+        reporter.info(`Azure response:`);
+        reporter.log(JSON.stringify(res));
+      }
       reporter.info(`Indexed documents to: ${indexName}`);
     });
 };
 
-const identity = () => {};
+/**
+ * Default no-op transformer function
+ */
+const identity = docs => docs;
 
+/**
+ * Run graphql query then index documents to Azure.
+ * @param graphql
+ * @param queryIndex
+ * @param query the query config specified in gatsby-config.js
+ * @param transformer the transformer function specified in gatsby-config.js
+ * @param serviceName azure search service name
+ * @param apiKey azure search admin key
+ * @param indexName indexConfig.name
+ * @param verbose
+ * @returns {Promise<*>}
+ */
 const doQuery = async (
   {
     graphql, queryIndex, query, transformer = identity,
     serviceName, apiKey, indexName, verbose,
   }
   ) => {
+
   if (!query) {
     reporter.panic(`Please specify "query"`);
   }
 
   reporter.info(`Query ${queryIndex}: running graphql query`);
   const result = await graphql(query);
+
   if (result.errors) {
     reporter.panic(`Failed to run graphql query`, result.errors);
   }
@@ -82,8 +124,8 @@ const doQuery = async (
   const docs = await transformer(result);
 
   reporter.info(`Query ${queryIndex}: generated ${docs.length} documents`);
-  reporter.info(`Query ${queryIndex}: indexing documents`);
 
+  reporter.info(`Query ${queryIndex}: indexing documents`);
   return indexDocuments({
     serviceName,
     apiKey,
@@ -93,18 +135,14 @@ const doQuery = async (
   });
 };
 
+// Gatsby API
 exports.onPostBuild = async function(
   { graphql },
-  {
-    serviceName, apiKey, indexConfig, queries,
-    verbose = false
-  }
-    ) {
+  { serviceName, apiKey, indexConfig, queries, verbose = false }
+  ) {
 
   const activity = reporter.activityTimer('Index to Azure Search');
   activity.start();
-
-  reporter.info(`Validating inputs`);
 
   reporter.info(`Create or update index ${indexConfig.name}`);
   await putIndex({
@@ -113,7 +151,6 @@ exports.onPostBuild = async function(
     indexConfig,
     verbose,
   });
-
 
   reporter.info(`${queries.length} queries to index`);
   const jobs = queries.map((query, queryIndex) => doQuery({
