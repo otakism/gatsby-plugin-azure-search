@@ -48,8 +48,8 @@ module.exports = {
           tokenFilters: [], // optional
           defaultScoringProfile: '', // optional
           corsOptions: { // optional
-            allowedOrigins: [], // default: ['*']
-            maxAgeInSeconds: 300, // default: 300
+            allowedOrigins: [], 
+            maxAgeInSeconds: 300, 
           },
           encryptionKey: {}, // optional
         },
