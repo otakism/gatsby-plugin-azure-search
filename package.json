@@ -26,8 +26,8 @@
     "standard-version": "^8.0.0"
   },
   "dependencies": {
-    "gatsby-cli": "^2.12.16",
-    "node-fetch": "^2.6.0"
+    "axios": "^0.19.2",
+    "gatsby-cli": "^2.12.16"
   },
   "files": [
     "index.js",

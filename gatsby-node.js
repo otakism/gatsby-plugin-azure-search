@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const axios = require('axios');
 const reporter = require('gatsby-cli/lib/reporter');
 
 const API_VERSION = '2019-05-06';
@@ -32,22 +32,27 @@ const putIndex = async (
   }
   ) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
-  const body = indexConfig;
   const headers = getHeaders({ apiKey });
   if (verbose) {
     reporter.info(`Input to put index:`);
     reporter.log(url);
-    reporter.log(JSON.stringify(body));
+    reporter.log(JSON.stringify(indexConfig));
     reporter.log(JSON.stringify(headers));
   }
-  return fetch(url, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(body),
-  }).then(res => {
-    reporter.info(`Response status: ${res.status}`);
+  try {
+    const res = axios({
+      method: 'put',
+      url,
+      headers,
+      data: indexConfig,
+    });
     reporter.info(`Created index: ${indexConfig.name}`);
-  });
+    return Promise.resolve(res);
+  } catch (e) {
+    reporter.error(e);
+    reporter.error(e.response.data);
+    return Promise.reject(e);
+  }
 };
 
 /**
@@ -68,21 +73,25 @@ const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose }) => {
   if (verbose) {
     reporter.info(`Input to index document:`);
     reporter.log(url);
-    reporter.log(JSON.stringify(body));
     reporter.log(JSON.stringify(headers));
   }
-  return fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  }).then(res => res.json())
-    .then(res => {
-      if (verbose) {
-        reporter.info(`Azure response:`);
-        reporter.log(JSON.stringify(res));
-      }
-      reporter.info(`Indexed documents to: ${indexName}`);
+  try {
+    const res = axios({
+      method: 'post',
+      url,
+      headers,
+      data: body,
     });
+    reporter.info(`Indexed documents to ${indexName}`);
+    if (verbose) {
+      reporter.log(JSON.stringify(res.data));
+    }
+    return Promise.resolve(res);
+  } catch (e) {
+    reporter.error(e.message);
+    reporter.error(JSON.stringify(e.response.data));
+    return Promise.reject(e);
+  }
 };
 
 /**
@@ -117,22 +126,17 @@ const doQuery = async (
   const result = await graphql(query);
 
   if (result.errors) {
-    reporter.panic(`Failed to run graphql query`, result.errors);
+    const errMsg = `Failed to run graphql query`;
+    reporter.panic(errMsg, result.errors);
+    return Promise.reject(new Error(errMsg));
   }
 
   reporter.info(`Query ${queryIndex}: running transformer`);
   const docs = await transformer(result);
 
   reporter.info(`Query ${queryIndex}: generated ${docs.length} documents`);
-
   reporter.info(`Query ${queryIndex}: indexing documents`);
-  return indexDocuments({
-    serviceName,
-    apiKey,
-    indexName,
-    docs,
-    verbose,
-  });
+  return indexDocuments({ serviceName, apiKey, indexName, docs, verbose });
 };
 
 // Gatsby API
@@ -144,31 +148,26 @@ exports.onPostBuild = async function(
   const activity = reporter.activityTimer('Index to Azure Search');
   activity.start();
 
-  reporter.info(`Create or update index ${indexConfig.name}`);
-  await putIndex({
-    serviceName,
-    apiKey,
-    indexConfig,
-    verbose,
-  });
-
-  reporter.info(`${queries.length} queries to index`);
-  const jobs = queries.map((query, queryIndex) => doQuery({
-    ...query,
-    queryIndex,
-    graphql,
-    activity,
-    serviceName,
-    apiKey,
-    indexName: indexConfig.name,
-    verbose,
-  }));
-
   try {
+    reporter.info(`Create or update index ${indexConfig.name}`);
+    await putIndex({ serviceName, apiKey, indexConfig, verbose });
+
+    reporter.info(`${queries.length} queries to index`);
+    const jobs = queries.map((query, queryIndex) => doQuery({
+      ...query,
+      queryIndex,
+      graphql,
+      activity,
+      serviceName,
+      apiKey,
+      indexName: indexConfig.name,
+      verbose,
+    }));
+
     await Promise.all(jobs);
   } catch (e) {
     reporter.panic(`Failed to index to Azure Search`, e);
+  } finally {
+    activity.end();
   }
-
-  activity.end();
 };
