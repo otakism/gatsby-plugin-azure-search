@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
-    "gatsby-cli": "^2.12.16"
+    "gatsby-cli": "^2.12.44"
   },
   "files": [
     "index.js",

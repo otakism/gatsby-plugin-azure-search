@@ -16,31 +16,58 @@ const getHeaders = ({ apiKey }) => {
 };
 
 /**
- * Create or update an search index.
+ * Delete a search index.
  * @param serviceName azure search service name
  * @param apiKey azure search admin key
  * @param indexConfig specified in gatsby-config.js
  * @param verbose
  * @returns {Promise<*>}
  */
-const putIndex = async (
-  {
-    serviceName,
-    apiKey,
-    indexConfig,
-    verbose = false,
-  }
-  ) => {
+const deleteIndex = async ({ serviceName, apiKey, indexConfig, verbose = false}) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
   const headers = getHeaders({ apiKey });
   if (verbose) {
-    reporter.info(`Input to put index:`);
-    reporter.log(url);
-    reporter.log(JSON.stringify(indexConfig));
-    reporter.log(JSON.stringify(headers));
+    reporter.info(`Input to delete index:`);
+    console.log(`url:`, url);
+    console.log(`indexName:`, indexConfig.name);
+    console.log(`headers:`, headers);
   }
   try {
-    const res = axios({
+    const res = await axios({
+      method: 'delete',
+      url,
+      headers,
+    });
+    reporter.info(`Deleted index: ${indexConfig.name}`);
+    return Promise.resolve(res);
+  } catch (e) {
+    reporter.warn(`Faield to delete index: ${e.message}. But it might be OK.`);
+    if (verbose) {
+      console.log(`Error response:`, e.response.data);
+    }
+    return Promise.resolve();
+  }
+};
+
+/**
+ * Create a search index.
+ * @param serviceName azure search service name
+ * @param apiKey azure search admin key
+ * @param indexConfig specified in gatsby-config.js
+ * @param verbose
+ * @returns {Promise<*>}
+ */
+const createIndex = async ({ serviceName, apiKey, indexConfig, verbose = false }) => {
+  const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
+  const headers = getHeaders({ apiKey });
+  if (verbose) {
+    reporter.info(`Input to create index:`);
+    console.log(`url:`, url);
+    console.log(`indexConfig:`, indexConfig);
+    console.log(`headers:`, headers);
+  }
+  try {
+    const res = await axios({
       method: 'put',
       url,
       headers,
@@ -49,8 +76,10 @@ const putIndex = async (
     reporter.info(`Created index: ${indexConfig.name}`);
     return Promise.resolve(res);
   } catch (e) {
-    reporter.error(e);
-    reporter.error(e.response.data);
+    reporter.error(`Faield to create index: ${e.message}`);
+    if (verbose) {
+      console.log(`Error response:`, e.response.data);
+    }
     return Promise.reject(e);
   }
 };
@@ -64,7 +93,7 @@ const putIndex = async (
  * @param verbose
  * @returns {*}
  */
-const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose }) => {
+const indexDocuments = async ({ serviceName, apiKey, indexName, docs, verbose }) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexName}/docs/index?api-version=${API_VERSION}`;
   const body = {
     value: docs,
@@ -72,11 +101,11 @@ const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose }) => {
   const headers = getHeaders({ apiKey });
   if (verbose) {
     reporter.info(`Input to index document:`);
-    reporter.log(url);
-    reporter.log(JSON.stringify(headers));
+    console.log(`url:`, url);
+    reporter.log(`headers:`, headers);
   }
   try {
-    const res = axios({
+    const res = await axios({
       method: 'post',
       url,
       headers,
@@ -84,12 +113,14 @@ const indexDocuments = ({ serviceName, apiKey, indexName, docs, verbose }) => {
     });
     reporter.info(`Indexed documents to ${indexName}`);
     if (verbose) {
-      reporter.log(JSON.stringify(res.data));
+      reporter.log(`Response data: `, JSON.stringify(res.data));
     }
     return Promise.resolve(res);
   } catch (e) {
-    reporter.error(e.message);
-    reporter.error(JSON.stringify(e.response.data));
+    reporter.error(`Faield to index documents: ${e.message}`);
+    if (verbose) {
+      console.log(`Error response:`, e.response.data);
+    }
     return Promise.reject(e);
   }
 };
@@ -149,8 +180,9 @@ exports.onPostBuild = async function(
   activity.start();
 
   try {
-    reporter.info(`Create or update index ${indexConfig.name}`);
-    await putIndex({ serviceName, apiKey, indexConfig, verbose });
+    reporter.info(`Rebuild index ${indexConfig.name}`);
+    await deleteIndex({ serviceName, apiKey, indexConfig, verbose });
+    await createIndex({ serviceName, apiKey, indexConfig, verbose });
 
     reporter.info(`${queries.length} queries to index`);
     const jobs = queries.map((query, queryIndex) => doQuery({
@@ -166,7 +198,7 @@ exports.onPostBuild = async function(
 
     await Promise.all(jobs);
   } catch (e) {
-    reporter.panic(`Failed to index to Azure Search`, e);
+    reporter.panic(`Failed to index to Azure Search.`);
   } finally {
     activity.end();
   }
