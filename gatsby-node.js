@@ -23,7 +23,12 @@ const getHeaders = ({ apiKey }) => {
  * @param verbose
  * @returns {Promise<*>}
  */
-const deleteIndex = async ({ serviceName, apiKey, indexConfig, verbose = false}) => {
+const deleteIndex = async ({
+  serviceName,
+  apiKey,
+  indexConfig,
+  verbose = false,
+}) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
   const headers = getHeaders({ apiKey });
   if (verbose) {
@@ -57,7 +62,12 @@ const deleteIndex = async ({ serviceName, apiKey, indexConfig, verbose = false})
  * @param verbose
  * @returns {Promise<*>}
  */
-const createIndex = async ({ serviceName, apiKey, indexConfig, verbose = false }) => {
+const createIndex = async ({
+  serviceName,
+  apiKey,
+  indexConfig,
+  verbose = false,
+}) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
   const headers = getHeaders({ apiKey });
   if (verbose) {
@@ -93,7 +103,13 @@ const createIndex = async ({ serviceName, apiKey, indexConfig, verbose = false }
  * @param verbose
  * @returns {*}
  */
-const indexDocuments = async ({ serviceName, apiKey, indexName, docs, verbose }) => {
+const indexDocuments = async ({
+  serviceName,
+  apiKey,
+  indexName,
+  docs,
+  verbose,
+}) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexName}/docs/index?api-version=${API_VERSION}`;
   const body = {
     value: docs,
@@ -128,7 +144,7 @@ const indexDocuments = async ({ serviceName, apiKey, indexName, docs, verbose })
 /**
  * Default no-op transformer function
  */
-const identity = docs => docs;
+const identity = (docs) => docs;
 
 /**
  * Run graphql query then index documents to Azure.
@@ -142,13 +158,16 @@ const identity = docs => docs;
  * @param verbose
  * @returns {Promise<*>}
  */
-const doQuery = async (
-  {
-    graphql, queryIndex, query, transformer = identity,
-    serviceName, apiKey, indexName, verbose,
-  }
-  ) => {
-
+const doQuery = async ({
+  graphql,
+  queryIndex,
+  query,
+  transformer = identity,
+  serviceName,
+  apiKey,
+  indexName,
+  verbose,
+}) => {
   if (!query) {
     reporter.panic(`Please specify "query"`);
   }
@@ -171,11 +190,10 @@ const doQuery = async (
 };
 
 // Gatsby API
-exports.onPostBuild = async function(
+exports.onPostBuild = async function (
   { graphql },
   { serviceName, apiKey, indexConfig, queries, verbose = false }
-  ) {
-
+) {
   const activity = reporter.activityTimer('Index to Azure Search');
   activity.start();
 
@@ -185,16 +203,18 @@ exports.onPostBuild = async function(
     await createIndex({ serviceName, apiKey, indexConfig, verbose });
 
     reporter.info(`${queries.length} queries to index`);
-    const jobs = queries.map((query, queryIndex) => doQuery({
-      ...query,
-      queryIndex,
-      graphql,
-      activity,
-      serviceName,
-      apiKey,
-      indexName: indexConfig.name,
-      verbose,
-    }));
+    const jobs = queries.map((query, queryIndex) =>
+      doQuery({
+        ...query,
+        queryIndex,
+        graphql,
+        activity,
+        serviceName,
+        apiKey,
+        indexName: indexConfig.name,
+        verbose,
+      })
+    );
 
     await Promise.all(jobs);
   } catch (e) {

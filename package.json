@@ -23,11 +23,11 @@
   },
   "homepage": "https://github.com/artchen/gatsby-plugin-azure-search#readme",
   "devDependencies": {
-    "standard-version": "^8.0.0"
+    "standard-version": "^8.0.2"
   },
   "dependencies": {
     "axios": "^0.19.2",
-    "gatsby-cli": "^2.12.44"
+    "gatsby-cli": "^2.12.66"
   },
   "files": [
     "index.js",
