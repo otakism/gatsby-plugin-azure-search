@@ -2,6 +2,12 @@
 
 Gatsby plugin to ingest data into Microsoft Azure Cognitive Search.
 
+## Overview
+
+There are 2 parts of implementing a search feature for your site. The indexing (writing) part and the querying (reading) part. The indexing part push data into some search back end, the querying part reads from the search back end via its APIs then presents the result on the front end.
+
+This plugin handles only the indexing part, using [Azure Cognitive Search](https://azure.microsoft.com/en-us/services/search/) as the back end service.
+
 ## How to use
 
 Install the plugin.
@@ -10,23 +16,20 @@ Install the plugin.
 npm install --save gatsby-plugin-azure-search dotenv
 ```
 
-Add credentials to an .env file. Do not commit this file.
-
-It is recommended to use this approach to keep the admin key secret. If your Gatsby repository is always private, you may also (at your own risk) hard-code the credentials in gatsby-config.js.
-
-Note that we need the admin key instead of the query key.
+Create an `.env` file in the root directory of gatsby, same level as `gatsby-config.js`. Do not commit this file.
 
 ```
-// .env.development
 AZURE_SEARCH_SERVICE_NAME=X
-AZURE_SEARCH_ADMIN_KEY=X
+AZURE_SEARCH_ADMIN_KEY=X // Note: we need "admin key" instead of "query key"
 ```
 
-Add configuration in gatsby-config.js like the following example:
+It is recommended to use dotenv for security reasons. If your Gatsby repository is always private, you can hard-code the credentials in `gatsby-config.js` at your own risk.
+
+Add configuration in gatsby-config.js:
 
 ```javascript
 require('dotenv').config({
-  path: `.env.${process.env.NODE_ENV}`,
+  path: `.env`,
 });
 
 module.exports = {
@@ -61,6 +64,10 @@ module.exports = {
 ```
 
 For `indexConfig`, refer to the official Azure [documentation](https://docs.microsoft.com/en-us/azure/search/search-what-is-an-index#index-attributes).
+
+You may also refer to `example` folder for how I configured the plugin in my blog.
+
+Assume the configuration is correct, your gatsby site should be indexed to Azure search every time it is built. You can verify the generated search index in Azure console.
 
 ### Query Configuration
 
