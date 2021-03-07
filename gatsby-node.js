@@ -1,5 +1,4 @@
 const axios = require('axios');
-const reporter = require('gatsby-cli/lib/reporter');
 
 const API_VERSION = '2019-05-06';
 
@@ -21,6 +20,7 @@ const getHeaders = ({ apiKey }) => {
  * @param apiKey azure search admin key
  * @param indexConfig specified in gatsby-config.js
  * @param verbose
+ * @param reporter
  * @returns {Promise<*>}
  */
 const deleteIndex = async ({
@@ -28,6 +28,7 @@ const deleteIndex = async ({
   apiKey,
   indexConfig,
   verbose = false,
+  reporter,
 }) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
   const headers = getHeaders({ apiKey });
@@ -60,6 +61,7 @@ const deleteIndex = async ({
  * @param apiKey azure search admin key
  * @param indexConfig specified in gatsby-config.js
  * @param verbose
+ * @param reporter
  * @returns {Promise<*>}
  */
 const createIndex = async ({
@@ -67,6 +69,7 @@ const createIndex = async ({
   apiKey,
   indexConfig,
   verbose = false,
+  reporter,
 }) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexConfig.name}?api-version=${API_VERSION}`;
   const headers = getHeaders({ apiKey });
@@ -101,6 +104,7 @@ const createIndex = async ({
  * @param indexName indexConfig.name
  * @param docs documents to index
  * @param verbose
+ * @param reporter
  * @returns {*}
  */
 const indexDocuments = async ({
@@ -109,6 +113,7 @@ const indexDocuments = async ({
   indexName,
   docs,
   verbose,
+  reporter,
 }) => {
   const url = `https://${serviceName}.search.windows.net/indexes/${indexName}/docs/index?api-version=${API_VERSION}`;
   const body = {
@@ -156,6 +161,7 @@ const identity = (docs) => docs;
  * @param apiKey azure search admin key
  * @param indexName indexConfig.name
  * @param verbose
+ * @param reporter
  * @returns {Promise<*>}
  */
 const doQuery = async ({
@@ -167,6 +173,7 @@ const doQuery = async ({
   apiKey,
   indexName,
   verbose,
+  reporter,
 }) => {
   if (!query) {
     reporter.panic(`Please specify "query"`);
@@ -186,12 +193,12 @@ const doQuery = async ({
 
   reporter.info(`Query ${queryIndex}: generated ${docs.length} documents`);
   reporter.info(`Query ${queryIndex}: indexing documents`);
-  return indexDocuments({ serviceName, apiKey, indexName, docs, verbose });
+  return indexDocuments({ serviceName, apiKey, indexName, docs, verbose, reporter });
 };
 
 // Gatsby API
 exports.onPostBuild = async function (
-  { graphql },
+  { graphql, reporter },
   { serviceName, apiKey, indexConfig, queries, verbose = false }
 ) {
   const activity = reporter.activityTimer('Index to Azure Search');
@@ -199,8 +206,8 @@ exports.onPostBuild = async function (
 
   try {
     reporter.info(`Rebuild index ${indexConfig.name}`);
-    await deleteIndex({ serviceName, apiKey, indexConfig, verbose });
-    await createIndex({ serviceName, apiKey, indexConfig, verbose });
+    await deleteIndex({ serviceName, apiKey, indexConfig, verbose, reporter });
+    await createIndex({ serviceName, apiKey, indexConfig, verbose, reporter });
 
     reporter.info(`${queries.length} queries to index`);
     const jobs = queries.map((query, queryIndex) =>
@@ -213,6 +220,7 @@ exports.onPostBuild = async function (
         apiKey,
         indexName: indexConfig.name,
         verbose,
+        reporter,
       })
     );
 
