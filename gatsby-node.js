@@ -115,6 +115,10 @@ const indexDocuments = async ({
   verbose,
   reporter,
 }) => {
+  if(!docs || !docs.length) {
+    reporter.warn(`Skipped: No docs to reindex`)
+    return Promise.resolve({})
+  }
   const url = `https://${serviceName}.search.windows.net/indexes/${indexName}/docs/index?api-version=${API_VERSION}`;
   const body = {
     value: docs,
