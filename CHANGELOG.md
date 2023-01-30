@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.13](https://github.com/artchen/gatsby-plugin-azure-search/compare/v0.0.12...v0.0.13) (2023-01-30)
+
+- Update dependencies
+
 ### [0.0.12](https://github.com/artchen/gatsby-plugin-azure-search/compare/v0.0.11...v0.0.12) (2022-01-22)
 
 ### [0.0.11](https://github.com/artchen/gatsby-plugin-azure-search/compare/v0.0.9...v0.0.11) (2021-10-04)

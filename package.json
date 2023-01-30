@@ -1,6 +1,6 @@
 {
   "name": "gatsby-plugin-azure-search",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Gatsby plugin to ingest data to Microsoft Azure search service.",
   "scripts": {
     "release": "standard-version"
@@ -23,10 +23,10 @@
   },
   "homepage": "https://github.com/artchen/gatsby-plugin-azure-search#readme",
   "devDependencies": {
-    "standard-version": "^9.3.2"
+    "standard-version": "^9.5.0"
   },
   "dependencies": {
-    "axios": "^0.25.0"
+    "axios": "^1.2.6"
   },
   "files": [
     "index.js",
